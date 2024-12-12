@@ -42,7 +42,7 @@ pipeline {
             steps {
                 script {
                     for (file in fileList) {
-                        sh "java -jar plantuml.jar -Playout=smetana ${file}"
+                        sh "java -jar plantuml.jar -Playout=smetana diagrams/${file}"
                         println "File ${file} processed."
                     }
                 }
