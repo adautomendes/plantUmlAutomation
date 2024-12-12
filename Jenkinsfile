@@ -19,6 +19,11 @@ pipeline {
                 }
             }
         }
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/adautomendes/plantUmlAutomation', credentialsId: 'Github - adautomendes'
+            }
+        }
         stage('Download latest PlantUML') {
             steps {
                 script {
