@@ -19,7 +19,9 @@ def htmlTemplate = """
 
 <body>
     <div class="container">
-        {{diagrams}}
+        <div class="row">
+            {{diagrams}}
+        </div>
     </div>
     <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
@@ -81,21 +83,17 @@ pipeline {
                         script {
                             def htmlDiagrams = ''
                             diagramList.each { title, file ->
-                                htmlDiagrams += """
-<div class="row">
-    <div class="col s4 m4 l4">
-        <div class="card">
-            <div class="card-image">
-                <img src="diagrams/${file}.png">
-                <span class="card-title"></span>
-            </div>
-            <div class="card-content">
-                <p>${title}</p>
-            </div>
+                                htmlDiagrams += """<div class="col s4 m4 l4">
+    <div class="card">
+        <div class="card-image">
+            <img src="diagrams/${file}.png">
+            <span class="card-title"></span>
+        </div>
+        <div class="card-content">
+            <p>${title}</p>
         </div>
     </div>
-</div>
-                                """
+</div>"""
                             }
 
                             htmlTemplate = htmlTemplate.replace('{{diagrams}}', htmlDiagrams)
