@@ -109,10 +109,7 @@ pipeline {
                         script {
                             def markdownDiagrams = ''
                             diagramList.each { title, file ->
-                                markdownDiagrams += """
-## ${title}
-![${title}](diagrams/${file}.png)
-                                """
+                                markdownDiagrams += "## ${title}\n![${title}](diagrams/${file}.png)\n"
                             }
 
                             markdownTemplate = markdownTemplate.replace('{{diagrams}}', markdownDiagrams)
