@@ -1,3 +1,5 @@
+import groovy.json.JsonSlurper
+
 def plantumlVersion='1.2024.8'
 def diagramList = [
     'Sequence Diagram': 'sequenceDiagram',
@@ -34,8 +36,33 @@ def markdownTemplate = """
 {{diagrams}}
 """
 
+def confluenceTemplate = """
+{
+    "type": "page",
+    "title": "PlantUML",
+    "space": {
+        "key": "EAI"
+    },
+    "ancestors": [
+        {
+            "id": "360451"
+        }
+    ],
+    "body": {
+        "wiki": {
+            "value": "{{pageContent}}",
+            "representation": "wiki"
+        }
+    }
+}
+"""
+
 pipeline {
     agent any
+
+    environment {
+        CONFLUENCE_TOKEN = 'Bearer NDcyNzIxODQ3ODg4OnZ2mWxAuTG0M2fjvz7zihRShmaQ'
+    }
 
     stages {
         stage('Clean WS') {
@@ -115,6 +142,34 @@ pipeline {
                             writeFile(file: 'output.md', text: markdownTemplate)
                         }
                     }
+                }
+            }
+        }
+        stage('Confluence') {
+            steps {
+                script {
+                    confluenceTemplate = confluenceTemplate.replace('{{pageContent}}', new Date().format("yyyyMMddHHmmss"))
+
+                    println "Request payload:\n${confluenceTemplate}"
+
+                    def headers = [[name: 'Authorization', value: env.CONFLUENCE_TOKEN]]
+
+                    def response = httpRequest(
+                        url: 'http://confluence:8090/rest/api/content',
+                        httpMode: 'POST',
+                        contentType: 'APPLICATION_JSON',
+                        requestBody: payload,
+                        customHeaders: headers,
+                        validResponseCodes: '200:201',
+                        consoleLogResponseBody: true
+                    )
+                    
+                    def jsonSlurper = new JsonSlurper()
+                    def jsonResponse = jsonSlurper.parseText(response.content)
+
+                    println "Response status: ${response.status}"
+                    println "Response payload:\n${response.content}"
+                    println "Generated page id: ${jsonResponse.id}"
                 }
             }
         }
