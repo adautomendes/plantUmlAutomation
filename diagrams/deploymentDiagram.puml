@@ -1,4 +1,6 @@
 @startuml
+!theme plain
+
 node foo
 title Bracketed line style without label
 foo --> bar
