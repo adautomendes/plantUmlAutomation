@@ -1,13 +1,20 @@
 import groovy.json.JsonSlurper
 
 def plantumlVersion='1.2024.8'
+def diagramsPageId = '5603334'
+def diagramsPageVersion = 1
+
+// def diagramList = [
+//     'Sequence Diagram': 'sequenceDiagram',
+//     'Use Case Diagram': 'usecaseDiagram',
+//     'Class Diagram': 'classDiagram',
+//     'Activity Diagram': 'activityDiagram',
+//     'Component Diagram': 'componentDiagram',
+//     'Deployment Diagram': 'deploymentDiagram'
+// ]
+
 def diagramList = [
     'Sequence Diagram': 'sequenceDiagram',
-    'Use Case Diagram': 'usecaseDiagram',
-    'Class Diagram': 'classDiagram',
-    'Activity Diagram': 'activityDiagram',
-    'Component Diagram': 'componentDiagram',
-    'Deployment Diagram': 'deploymentDiagram'
 ]
 
 def htmlTemplate = """
@@ -39,13 +46,13 @@ def markdownTemplate = """
 def confluenceTemplate = """
 {
     "type": "page",
-    "title": "PlantUML",
+    "title": "PlantUML {{date}}",
     "space": {
         "key": "EAI"
     },
     "ancestors": [
         {
-            "id": "360451"
+            "id": "5603329"
         }
     ],
     "body": {
@@ -60,18 +67,7 @@ def confluenceTemplate = """
 pipeline {
     agent any
 
-    environment {
-        CONFLUENCE_TOKEN = 'Bearer NDcyNzIxODQ3ODg4OnZ2mWxAuTG0M2fjvz7zihRShmaQ'
-    }
-
     stages {
-        stage('Clean WS') {
-            steps {
-                script {
-                    cleanWs()
-                }
-            }
-        }
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/adautomendes/plantUmlAutomation', credentialsId: 'Github - adautomendes'
@@ -80,7 +76,11 @@ pipeline {
         stage('Download latest PlantUML') {
             steps {
                 script {
-                    sh "curl -L https://github.com/plantuml/plantuml/releases/download/v${plantumlVersion}/plantuml-${plantumlVersion}.jar -o plantuml.jar"
+                    if (!fileExists('plantuml.jar')) {
+                        sh "curl -L https://github.com/plantuml/plantuml/releases/download/v${plantumlVersion}/plantuml-${plantumlVersion}.jar -o plantuml.jar"
+                    } else {
+                        println "PlantUML jar already exists in workspace."
+                    }
                 }
             }
         }
@@ -145,31 +145,39 @@ pipeline {
                 }
             }
         }
-        stage('Confluence') {
+        stage('Get Confluence page version') {
             steps {
                 script {
-                    confluenceTemplate = confluenceTemplate.replace('{{pageContent}}', new Date().format("yyyyMMddHHmmss"))
+                    confluenceTemplate = confluenceTemplate.replace('{{pageContent}}', new Date().format("yyyy-MM-dd HH:mm:ss"))
+                    confluenceTemplate = confluenceTemplate.replace('{{date}}', new Date().format("yyyy-MM-dd HH:mm:ss"))
 
                     println "Request payload:\n${confluenceTemplate}"
 
-                    def headers = [[name: 'Authorization', value: env.CONFLUENCE_TOKEN]]
+                    def response
+                    withCredentials([usernamePassword(credentialsId: 'Confluence_UserPass', usernameVariable: 'user', passwordVariable: 'password')]) {
+                        response = readJSON(text: sh(script: """
+                                curl -u ${user}:${password} http://confluence:8090/rest/api/content/'${diagramsPageId}'?expand=body.storage,version,space
+                            """, returnStdout: true).trim())
+                    }
 
-                    def response = httpRequest(
-                        url: 'http://confluence:8090/rest/api/content',
-                        httpMode: 'POST',
-                        contentType: 'APPLICATION_JSON',
-                        requestBody: confluenceTemplate,
-                        customHeaders: headers,
-                        validResponseCodes: '200:201',
-                        consoleLogResponseBody: true
-                    )
+                    diagramsPageVersion += response.version.number
                     
-                    def jsonSlurper = new JsonSlurper()
-                    def jsonResponse = jsonSlurper.parseText(response.content)
+                    println "Diagrams Page next version: ${diagramsPageVersion}"
+                }
+            }
+        }
+        stage('Upload diagrams') {
+            steps {
+                script {
 
-                    println "Response status: ${response.status}"
-                    println "Response payload:\n${response.content}"
-                    println "Generated page id: ${jsonResponse.id}"
+                    def response
+                    withCredentials([usernamePassword(credentialsId: 'Confluence_UserPass', usernameVariable: 'user', passwordVariable: 'password')]) {
+                        diagramList.each { title, file ->
+                            response = readJSON(text: sh(script: """
+                                    curl -u ${user}:${password} -X POST -H "X-Atlassian-Token: nocheck" -F "file=@diagrams/${file}.png" -F "comment=${title}" http://confluence:8090/rest/api/content/${diagramsPageId}/child/attachment
+                                """, returnStdout: true).trim())
+                        }
+                    }
                 }
             }
         }
