@@ -1,5 +1,5 @@
 @startuml
-!theme plain
+!theme materia
 
 package "Some Group" {
   HTTP - [First Component]
