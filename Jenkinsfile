@@ -158,7 +158,7 @@ pipeline {
                         url: 'http://confluence:8090/rest/api/content',
                         httpMode: 'POST',
                         contentType: 'APPLICATION_JSON',
-                        requestBody: payload,
+                        requestBody: confluenceTemplate,
                         customHeaders: headers,
                         validResponseCodes: '200:201',
                         consoleLogResponseBody: true
