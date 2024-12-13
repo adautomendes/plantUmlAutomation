@@ -7,7 +7,6 @@ participant "The **Famous** Bob" as Bob
 Alice -> Bob : hello --there--
 ... Some ~~long delay~~ ...
 Bob -> Alice : ok
-Bob -> Alice : hi
 note left
   This is **bold**
   This is //italics//
