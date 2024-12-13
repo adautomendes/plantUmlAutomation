@@ -1,20 +1,15 @@
-import groovy.json.JsonSlurper
-
+def currentDate = new Date().format("yyyy-MM-dd HH:mm:ss")
 def plantumlVersion='1.2024.8'
 def diagramsPageId = '5603334'
 def diagramsPageVersion = 1
 
-// def diagramList = [
-//     'Sequence Diagram': 'sequenceDiagram',
-//     'Use Case Diagram': 'usecaseDiagram',
-//     'Class Diagram': 'classDiagram',
-//     'Activity Diagram': 'activityDiagram',
-//     'Component Diagram': 'componentDiagram',
-//     'Deployment Diagram': 'deploymentDiagram'
-// ]
-
 def diagramList = [
     'Sequence Diagram': 'sequenceDiagram',
+    'Use Case Diagram': 'usecaseDiagram',
+    'Class Diagram': 'classDiagram',
+    'Activity Diagram': 'activityDiagram',
+    'Component Diagram': 'componentDiagram',
+    'Deployment Diagram': 'deploymentDiagram'
 ]
 
 def htmlTemplate = """
@@ -50,11 +45,6 @@ def confluenceTemplate = """
     "space": {
         "key": "EAI"
     },
-    "ancestors": [
-        {
-            "id": "5603329"
-        }
-    ],
     "body": {
         "wiki": {
             "value": "{{pageContent}}",
@@ -68,6 +58,13 @@ pipeline {
     agent any
 
     stages {
+        stage('Clean WS') {
+            steps {
+                script {
+                    cleanWs()
+                }
+            }
+        }
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/adautomendes/plantUmlAutomation', credentialsId: 'Github - adautomendes'
@@ -88,7 +85,7 @@ pipeline {
             steps {
                 script {
                     diagramList.each { title, file ->
-                        println "File: ${file} ==> Title: ${title}"
+                        println "Input file: diagrams/${file}.puml | Title: ${title} | Output file: diagrams/${file}.png"
                     }
                 }
             }
@@ -97,8 +94,8 @@ pipeline {
             steps {
                 script {
                     diagramList.each { title, file ->
-                        sh "java -jar plantuml.jar -Playout=smetana diagrams/${file}.puml"
-                        println "File ${file} processed."
+                        sh "cat diagrams/${file}.puml | java -jar plantuml.jar -Playout=smetana -pipe > diagrams/${file}.png"
+                        println "File diagrams/${file}.puml processed."
                     }
                 }
             }
@@ -148,11 +145,6 @@ pipeline {
         stage('Get Confluence page version') {
             steps {
                 script {
-                    confluenceTemplate = confluenceTemplate.replace('{{pageContent}}', new Date().format("yyyy-MM-dd HH:mm:ss"))
-                    confluenceTemplate = confluenceTemplate.replace('{{date}}', new Date().format("yyyy-MM-dd HH:mm:ss"))
-
-                    println "Request payload:\n${confluenceTemplate}"
-
                     def response
                     withCredentials([usernamePassword(credentialsId: 'Confluence_UserPass', usernameVariable: 'user', passwordVariable: 'password')]) {
                         response = readJSON(text: sh(script: """
@@ -161,21 +153,43 @@ pipeline {
                     }
 
                     diagramsPageVersion += response.version.number
-                    
+
+                    println "${response}"
                     println "Diagrams Page next version: ${diagramsPageVersion}"
                 }
             }
         }
-        stage('Upload diagrams') {
+        stage('Replace diagrams') {
             steps {
                 script {
-
-                    def response
                     withCredentials([usernamePassword(credentialsId: 'Confluence_UserPass', usernameVariable: 'user', passwordVariable: 'password')]) {
                         diagramList.each { title, file ->
-                            response = readJSON(text: sh(script: """
-                                    curl -u ${user}:${password} -X POST -H "X-Atlassian-Token: nocheck" -F "file=@diagrams/${file}.png" -F "comment=${title}" http://confluence:8090/rest/api/content/${diagramsPageId}/child/attachment
+                            def getResponse = readJSON(text: sh(script: """
+                                    curl -u ${user}:${password} -X GET -H 'Accept: application/json' http://confluence:8090/rest/api/content/${diagramsPageId}/child/attachment?filename=${file}.png
                                 """, returnStdout: true).trim())
+
+                            if (getResponse.size != 0) {
+                                def attachmentId = getResponse.results[0].id
+                                def attachmentTitle = getResponse.results[0].title
+
+                                println "Deleting old attachment id=${attachmentId}, name=${attachmentTitle}"
+
+                                def deleteResponse = sh(script: """
+                                        curl -w "%{http_code}" -u ${user}:${password} -X DELETE -H 'Content-Type: application/json' -H 'Accept: application/json' http://confluence:8090/rest/api/content/${attachmentId}?status=current
+                                    """, returnStdout: true).trim()
+                                
+                                if (deleteResponse != '204') {
+                                    error("Delete of ${file}.png was not successful.")
+                                }
+                            }
+
+
+                            def postResponse = readJSON(text: sh(script: """
+                                    curl -u ${user}:${password} -X POST -H 'X-Atlassian-Token: nocheck' -F 'file=@"diagrams/${file}.png"' -F 'comment="${title} ${currentDate}"' http://confluence:8090/rest/api/content/${diagramsPageId}/child/attachment
+                                """, returnStdout: true).trim())
+
+                            println "Response: ${postResponse}"
+                            println "File diagrams/${file}.png uploaded."
                         }
                     }
                 }
