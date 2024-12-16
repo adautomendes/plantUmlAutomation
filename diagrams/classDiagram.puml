@@ -1,5 +1,5 @@
 @startuml
-!theme materia
+!theme silver
 
 package "Classic Collections" #DDDDDD {
   Object <|-- ArrayList

@@ -1,5 +1,5 @@
 @startuml
-!theme materia
+!theme silver
 
 package "Some Group" {
   HTTP - [First Component]
