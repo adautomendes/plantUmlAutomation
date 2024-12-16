@@ -1,5 +1,5 @@
 @startuml
-!theme silver
+!theme aws-orange
 
 participant Alice
 participant "The **Famous** Bob" as Bob

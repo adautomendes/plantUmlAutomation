@@ -1,5 +1,5 @@
 @startuml
-!theme silver
+!theme aws-orange
 
 start
 repeat
