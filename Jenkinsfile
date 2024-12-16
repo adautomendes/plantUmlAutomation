@@ -10,6 +10,7 @@ def diagramList = [
     'Activity Diagram': 'activityDiagram',
     'Component Diagram': 'componentDiagram',
     'Deployment Diagram': 'deploymentDiagram'
+    'YAML Diagram': 'yamlDiagram'
 ]
 
 def htmlTemplate = """
