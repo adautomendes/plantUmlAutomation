@@ -9,7 +9,7 @@ def diagramList = [
     'Class Diagram': 'classDiagram',
     'Activity Diagram': 'activityDiagram',
     'Component Diagram': 'componentDiagram',
-    'Deployment Diagram': 'deploymentDiagram'
+    'Deployment Diagram': 'deploymentDiagram',
     'YAML Diagram': 'yamlDiagram'
 ]
 
