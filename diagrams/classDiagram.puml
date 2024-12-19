@@ -1,5 +1,5 @@
 @startuml
-!theme aws-orange
+!theme silver
 
 package "Classic Collections" #DDDDDD {
   Object <|-- ArrayList

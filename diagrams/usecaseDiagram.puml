@@ -1,5 +1,5 @@
 @startuml
-!theme aws-orange
+!theme silver
 
 :Main Admin: as Admin
 (Use the application) as (Use)
