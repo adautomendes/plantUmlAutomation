@@ -1,5 +1,5 @@
 @startuml
-!theme silver
+!theme plain
 
 node foo
 title Bracketed line style without label

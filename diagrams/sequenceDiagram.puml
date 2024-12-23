@@ -1,5 +1,5 @@
 @startuml
-!theme silver
+!theme plain
 
 participant Alice
 participant "The **Famous** Bob" as Bob

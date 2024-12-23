@@ -1,5 +1,5 @@
 @startuml
-!theme silver
+!theme plain
 
 package "Some Group" {
   HTTP - [First Component]
