@@ -1,5 +1,5 @@
 @startuml
-!theme spacelab
+!theme plain
 
 package "Classic Collections" #DDDDDD {
   Object <|-- ArrayList
