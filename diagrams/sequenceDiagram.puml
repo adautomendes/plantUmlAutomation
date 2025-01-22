@@ -1,5 +1,5 @@
 @startuml
-!theme plain
+!theme spacelab
 
 participant Alice
 participant "The **Famous** Bob" as Bob
