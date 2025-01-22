@@ -1,5 +1,5 @@
 @startuml
-!theme spacelab
+!theme plain
 
 node foo
 title Bracketed line style without label
