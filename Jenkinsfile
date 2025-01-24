@@ -1,6 +1,6 @@
 def currentDate = new Date().format("yyyy-MM-dd HH:mm:ss")
 def plantumlVersion='1.2024.8'
-def diagramsPageId = '5603334'
+def diagramsPageId = '7897089'
 def diagramsPageVersion = 1
 
 def diagramList = [
