@@ -154,6 +154,43 @@ pipeline {
                 }
             }
         }
+        stage('Create Confluence page') {
+            when { expression { params.createNewPage == true } }
+            steps {
+                script {
+                    // Handling template with all diagrams
+                    def createConfluencePageTemplate = ""
+                    diagramList.each { title, file ->
+                        createConfluencePageTemplate += "h2. ${title}\\n!${file}.png!\\n"
+                    }
+
+                    createConfluencePayloadTemplate = createConfluencePayloadTemplate.replace('{{date}}', currentDate)
+                    createConfluencePayloadTemplate = createConfluencePayloadTemplate.replace('{{template}}', createConfluencePageTemplate)
+
+                    def createConfluencePageResponse
+                    withCredentials([usernamePassword(credentialsId: 'Confluence_UserPass', usernameVariable: 'user', passwordVariable: 'password')]) {
+                        createConfluencePageResponse = readJSON(text: sh(script: """
+                                curl -u ${user}:${password} -H 'Content-Type: application/json' http://confluence:8090/rest/api/content/ --data '${createConfluencePayloadTemplate}'
+                            """, returnStdout: true).trim())
+                    }
+
+                    println "${createConfluencePageResponse}"
+                    println "Confluence page id: ${createConfluencePageResponse.id}"
+
+                    diagramList.each { title, file ->
+                        def postDiagramAttachmentResponse = ""
+                        withCredentials([usernamePassword(credentialsId: 'Confluence_UserPass', usernameVariable: 'user', passwordVariable: 'password')]) {
+                            postDiagramAttachmentResponse = readJSON(text: sh(script: """
+                                    curl -u ${user}:${password} -X POST -H 'X-Atlassian-Token: nocheck' -F 'file=@"diagrams/${file}.png"' -F 'comment="${title} ${currentDate}"' http://confluence:8090/rest/api/content/${createConfluencePageResponse.id}/child/attachment
+                                """, returnStdout: true).trim())
+                        }
+
+                        println "Response: ${postDiagramAttachmentResponse}"
+                        println "File diagrams/${file}.png uploaded."
+                    }
+                }
+            }
+        }
         stage('Get Confluence page version') {
             when { expression { params.createNewPage == false } }
             steps {
@@ -205,43 +242,6 @@ pipeline {
                             println "Response: ${postResponse}"
                             println "File diagrams/${file}.png uploaded."
                         }
-                    }
-                }
-            }
-        }
-        stage('Create Confluence page') {
-            when { expression { params.createNewPage == true } }
-            steps {
-                script {
-                    // Handling template with all diagrams
-                    def createConfluencePageTemplate = ""
-                    diagramList.each { title, file ->
-                        createConfluencePageTemplate += "h2. ${title}\\n!${file}.png!\\n"
-                    }
-
-                    createConfluencePayloadTemplate = createConfluencePayloadTemplate.replace('{{date}}', currentDate)
-                    createConfluencePayloadTemplate = createConfluencePayloadTemplate.replace('{{template}}', createConfluencePageTemplate)
-
-                    def createConfluencePageResponse
-                    withCredentials([usernamePassword(credentialsId: 'Confluence_UserPass', usernameVariable: 'user', passwordVariable: 'password')]) {
-                        createConfluencePageResponse = readJSON(text: sh(script: """
-                                curl -u ${user}:${password} -H 'Content-Type: application/json' http://confluence:8090/rest/api/content/ --data '${createConfluencePayloadTemplate}'
-                            """, returnStdout: true).trim())
-                    }
-
-                    println "${createConfluencePageResponse}"
-                    println "Confluence page id: ${createConfluencePageResponse.id}"
-
-                    diagramList.each { title, file ->
-                        def postDiagramAttachmentResponse = ""
-                        withCredentials([usernamePassword(credentialsId: 'Confluence_UserPass', usernameVariable: 'user', passwordVariable: 'password')]) {
-                            postDiagramAttachmentResponse = readJSON(text: sh(script: """
-                                    curl -u ${user}:${password} -X POST -H 'X-Atlassian-Token: nocheck' -F 'file=@"diagrams/${file}.png"' -F 'comment="${title} ${currentDate}"' http://confluence:8090/rest/api/content/${createConfluencePageResponse.id}/child/attachment
-                                """, returnStdout: true).trim())
-                        }
-
-                        println "Response: ${postDiagramAttachmentResponse}"
-                        println "File diagrams/${file}.png uploaded."
                     }
                 }
             }
