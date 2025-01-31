@@ -33,6 +33,10 @@
     {
       "type": "office",
       "number": "646 555-4567"
+    },
+    {
+      "type": "office2",
+      "number": "646 555-4566"
     }
   ],
   "children": [
