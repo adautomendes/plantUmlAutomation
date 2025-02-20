@@ -47,10 +47,6 @@
     "child5",
     "child6"
   ],
-  "my Arr": [
-    "arr1",
-    "arr2"
-  ],
   "spouse": null
 }
 @endjson
